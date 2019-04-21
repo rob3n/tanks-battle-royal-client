@@ -1,0 +1,40 @@
+{
+	"name": "tanks-battle-royal-client",
+	"version": "1.0.0",
+	"description": "",
+	"main": "index.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"build": "webpack --mode production",
+		"dev": "webpack-dev-server --mode development --watch --open"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/rob3n/tanks-battle-royal-client.git"
+	},
+	"author": "",
+	"license": "ISC",
+	"bugs": {
+		"url": "https://github.com/rob3n/tanks-battle-royal-client/issues"
+	},
+	"homepage": "https://github.com/rob3n/tanks-battle-royal-client#readme",
+	"dependencies": {
+		"phaser": "^3.16.2"
+	},
+	"devDependencies": {
+		"babel-eslint": "^10.0.1",
+		"clean-webpack-plugin": "^2.0.1",
+		"eslint": "^5.16.0",
+		"eslint-config-airbnb": "^17.1.0",
+		"eslint-config-prettier": "^4.1.0",
+		"eslint-plugin-import": "^2.17.2",
+		"eslint-plugin-jsx-a11y": "^6.2.1",
+		"eslint-plugin-prettier": "^3.0.1",
+		"eslint-plugin-react": "^7.12.4",
+		"html-webpack-plugin": "^3.2.0",
+		"prettier": "^1.17.0",
+		"webpack": "^4.30.0",
+		"webpack-cli": "^3.3.1",
+		"webpack-dev-server": "^3.3.1"
+	}
+}
