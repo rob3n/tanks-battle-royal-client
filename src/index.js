@@ -1,9 +1,10 @@
-const Phaser = require('phaser')
+import Phaser from 'phaser'
+import createBackground from './components/background'
 
 const config = {
 	type: Phaser.AUTO,
-	width: 800,
-	height: 600,
+	width: '100%',
+	height: '100%',
 	physics: {
 		default: 'arcade',
 		arcade: {
@@ -17,7 +18,6 @@ const config = {
 }
 
 const game = new Phaser.Game(config)
-console.log(game, 1)
 
 function preload() {
 	this.load.setBaseURL('http://labs.phaser.io')
@@ -28,8 +28,7 @@ function preload() {
 }
 
 function create() {
-	this.add.image(400, 300, 'sky')
-
+	createBackground(this)
 	const particles = this.add.particles('red')
 
 	const emitter = particles.createEmitter({
