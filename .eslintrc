@@ -4,5 +4,9 @@
 	"parser": "babel-eslint",
 	"rules": {
 		"no-use-before-define": 0
+	},
+	"globals": {
+		"window": true,
+		"document": true
 	}
 }
