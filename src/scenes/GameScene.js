@@ -39,5 +39,17 @@ export default class GameScene extends Phaser.Scene {
 			tank.x += 5
 			tank.angle = -90
 		}
+
+		if (cursors.left.isDown && cursors.up.isDown) {
+			tank.angle = 135
+		} else if (cursors.left.isDown && cursors.down.isDown) {
+			tank.angle = 45
+		}
+
+		if (cursors.right.isDown && cursors.up.isDown) {
+			tank.angle = -135
+		} else if (cursors.right.isDown && cursors.down.isDown) {
+			tank.angle = -45
+		}
 	}
 }
