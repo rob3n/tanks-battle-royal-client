@@ -3,7 +3,8 @@
 	"plugins": ["prettier"],
 	"parser": "babel-eslint",
 	"rules": {
-		"no-use-before-define": 0
+		"no-use-before-define": 0,
+		"semi": [2, "always"]
 	},
 	"globals": {
 		"window": true,
