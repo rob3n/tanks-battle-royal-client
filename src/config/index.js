@@ -1,4 +1,4 @@
-import Phaser from 'phaser'
+import Phaser from 'phaser';
 
 export default {
 	type: Phaser.AUTO,
@@ -11,4 +11,4 @@ export default {
 			gravity: { y: 200 }
 		}
 	}
-}
+};
