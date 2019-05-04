@@ -1,9 +1,10 @@
 import Phaser from 'phaser';
 
 let tank;
+let map;
 let enemy;
-let enemy2;
-let wallsLayer;
+let background;
+let treesLayer;
 
 let cursors;
 const coll = false;
@@ -16,104 +17,43 @@ export default class GameScene extends Phaser.Scene {
 
 	preload() {
 		this.load.image('tank_blue', 'assets/tank_blue.png');
-		this.load.image('map_tiles', 'assets/default.png');
-		this.load.image('map', 'assets/map_tiles.png');
-		this.load.image('sky', 'http://labs.phaser.io/assets/skies/nebula.jpg');
+
+		this.load.image('tiles', 'assets/all_tiles.png');
+		this.load.tilemapTiledJSON('map', 'assets/map.json');
 	}
 
 	create() {
-		const level = [
-			[
-				49,
-				17,
-				17,
-				17,
-				17,
-				17,
-				17,
-				17,
-				17,
-				17,
-				2,
-				2,
-				2,
-				2,
-				2,
-				2,
-				2,
-				2,
-				2,
-				2,
-				2,
-				2
-			],
-			[8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
-			[2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
-			[2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
-			[2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
-			[2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
-			[2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
-			[2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
-			[2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
-			[2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
-			[2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
-			[2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
-			[2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
-			[2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]
-		];
+		map = this.make.tilemap({ key: 'map' });
+		// set layers
+		const tileset = map.addTilesetImage('all_tiles', 'tiles');
 
-		const walls = [
-			['', 56, '', '', '', '', '', '', '', '', ''],
-			['', 56, '', '', '', '', '', '', '', '', '']
-		];
+		background = map.createStaticLayer('BackLayer', tileset, 0, 0);
+		treesLayer = map.createStaticLayer('TreesLayer', tileset, 0, 0);
 
-		const w = 64;
+		treesLayer.setCollisionByProperty({ collides: true });
 
-		const map = this.make.tilemap({
-			data: level,
-			tileWidth: w,
-			tileHeight: w
-		});
-
-		const obj = this.make.tilemap({
-			data: walls,
-			tileWidth: w,
-			tileHeight: w
-		});
-
-		const tiles = map.addTilesetImage('map_tiles');
-		const wallsTiles = obj.addTilesetImage('map_tiles');
-
-		const mapLayer = map.createStaticLayer(0, tiles, 0, 0);
-		wallsLayer = obj.createStaticLayer(0, wallsTiles, 64, 64);
-		wallsLayer.setCollision(56);
-
-		tank = this.physics.add.sprite(50, 150, 'tank_blue');
-		enemy = this.physics.add.sprite(350, 150, 'tank_blue');
-		enemy2 = this.physics.add.sprite(450, 150, 'tank_blue');
+		// create tank sprite with physics
+		tank = this.physics.add.sprite(230, 350, 'tank_blue');
+		enemy = this.physics.add.sprite(350, 350, 'tank_blue');
 
 		tank.setCollideWorldBounds(true);
+		tank.scaleX = 0.6;
+		tank.scaleY = 0.6;
+
 		enemy.setCollideWorldBounds(true);
-		enemy2.setCollideWorldBounds(true);
-		// wallsLayer.setCollideWorldBounds(true);
+		enemy.scaleX = 0.6;
+		enemy.scaleY = 0.6;
 
-		console.log(wallsLayer);
-		tank.scaleX = 0.5;
-		tank.scaleY = 0.5;
+		// collide trees and tank
+		this.physics.add.collider(tank, treesLayer);
+		this.physics.add.collider(enemy, treesLayer);
+		this.physics.add.collider(tank, enemy);
 
-		this.physics.add.collider(tank, wallsLayer);
+		// detect keyboard
 		cursors = this.input.keyboard.createCursorKeys();
 	}
 
 	update() {
-		this.physics.world.collide(tank, enemy, () => {
-			console.log(1);
-		});
-		this.physics.world.collide(tank, wallsLayer, () => {
-			console.log(1);
-		});
-		this.physics.world.collide(enemy, enemy2);
-
 		const { width, height } = this.sys.game.canvas;
 		if (!coll) {
 			if (cursors.up.isDown && tank.y >= 25) {
