@@ -13,10 +13,15 @@ export default class GameScene extends Phaser.Scene {
 	constructor() {
 		super('Game');
 		this.speed = 200;
+		this.tank = {
+			x: 230,
+			y: 350
+		};
 	}
 
 	preload() {
 		this.load.image('tank_blue', 'assets/tank_blue.png');
+		this.load.image('bullet', 'assets/bullet.png');
 
 		this.load.image('tiles', 'assets/all_tiles.png');
 		this.load.tilemapTiledJSON('map', 'assets/map.json');
@@ -29,6 +34,8 @@ export default class GameScene extends Phaser.Scene {
 
 		background = map.createStaticLayer('BackLayer', tileset, 0, 0);
 		treesLayer = map.createStaticLayer('TreesLayer', tileset, 0, 0);
+
+		console.log(background);
 
 		treesLayer.setCollisionByProperty({ collides: true });
 
@@ -51,6 +58,8 @@ export default class GameScene extends Phaser.Scene {
 
 		// detect keyboard
 		cursors = this.input.keyboard.createCursorKeys();
+
+		// bullet
 	}
 
 	update() {
@@ -90,6 +99,40 @@ export default class GameScene extends Phaser.Scene {
 			} else if (cursors.right.isDown && cursors.down.isDown) {
 				tank.angle = -45;
 			}
+
+			if (cursors.space.isDown) {
+				this.makeBullet();
+			}
 		}
+	}
+
+	// setAngle() {
+	// 	let angle = this.physics.moveTo(tank, 1, 1, 60);
+	// 	console.log(angle);
+	// 	angle = this.toDegrees(angle);
+	// 	console.log(angle);
+	// }
+
+	// toDegrees(angle) {
+	// 	return angle * (180 / Math.Pi);
+	// }
+
+	getDirectionFromAngle(angle) {
+		const rads = (angle * Math.PI) / 180;
+		const tx = Math.cos(rads);
+		const ty = Math.sin(rads);
+		return {
+			tx,
+			ty
+		};
+	}
+
+	makeBullet() {
+		const dirObj = this.getDirectionFromAngle(tank.angle);
+		console.log(tank.angle, dirObj);
+		const bullet = this.physics.add.sprite(tank.x, tank.y, 'bullet');
+		bullet.angle = tank.angle;
+		bullet.body.setVelocity(dirObj.tx * 200, dirObj.ty * 600);
+		console.log(tank);
 	}
 }
