@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 
-const TANK_MAX_VELOCITY = 200;
+const TANK_MAX_VELOCITY = 100;
 const SHOOTING_TIMEOUT_MS = 500;
 const BULLET_SPEED = 300;
 
@@ -17,7 +17,6 @@ export default class GameScene extends Phaser.Scene {
 		this.treesLayer = null;
 		this.cursors = null;
 		this.bullets = null;
-		this.bulletLifeTime = 4000;
 	}
 
 	preload() {
@@ -79,29 +78,26 @@ export default class GameScene extends Phaser.Scene {
 		 */
 		console.log(this.tank);
 		console.log(this.physics);
+		console.log(this);
 	}
 
 	update() {
-		// second variant destroy bullet over map
-		// if (this.bullets.children.entries.length) {
-		// 	this.bullets.children.entries.map(bullet => {
-		// 		if (bullet.x < 0) {
-		// 			bullet.destroy();
-		// 		} else if (bullet.y < 0) {
-		// 			bullet.destroy();
-		// 		}
-		// 	});
-		// }
+		this.destroyBullets();
+
 		if (!this.isCollision) {
 			/**
 			 * PROTOTYPE OF MOVEMENT; WIP
 			 */
-			if (this.cursors.up.isDown) {
+			if (this.cursors.up.isDown && this.velocity < TANK_MAX_VELOCITY) {
 				this.velocity += this.acceleration;
 			}
 
-			if (this.cursors.down.isDown) {
-				this.velocity -= this.acceleration;
+			if (this.cursors.down.isDown && this.velocity > TANK_MAX_VELOCITY * -1 / 2) {
+				if (this.velocity > 0) {
+					this.velocity -= this.acceleration * 2;
+				} else {
+					this.velocity -= this.acceleration / 2;
+				}
 			}
 
 			this.tank.setVelocity(
@@ -126,12 +122,7 @@ export default class GameScene extends Phaser.Scene {
 				fireTimestamp - this.lastFired > SHOOTING_TIMEOUT_MS
 			) {
 				this.lastFired = fireTimestamp;
-				const bull = this.fire();
-
-				// first variant with destroy bullet over map
-				setTimeout(() => {
-					bull.destroy();
-				}, this.bulletLifeTime);
+				this.fire();
 			}
 		}
 	}
@@ -145,16 +136,27 @@ export default class GameScene extends Phaser.Scene {
 				BULLET_SPEED * Math.cos((this.tank.angle - 90) * 0.01745),
 				BULLET_SPEED * Math.sin((this.tank.angle - 90) * 0.01745)
 			);
-
-			return bullet;
 		}
-		return null;
 	}
 
-	destroyBullet(enemy, bullet) {
-		// Remove the enemy
-		console.log(enemy, bullet);
-		// Remove the Bullet
-		bullet.destroy();
+	destroyBullets() {
+		const bullets = this.bullets.children.entries;
+		if (bullets.length) {
+			for (let i = 0; i < bullets.length; i++) {
+				const bullet = bullets[i];
+
+				if (bullet.y <= 0) {
+					bullet.destroy();
+				}
+
+				if (bullet.y >= this.cameras.main.height) {
+					bullet.destroy();
+				}
+
+				if (bullet.x <= 0) {
+					bullet.destroy();
+				}
+			}
+		}
 	}
 }
