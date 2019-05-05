@@ -18,6 +18,7 @@ export default class GameScene extends Phaser.Scene {
 		this.cursors = null;
 		this.bullets = null;
 		this.bulletLifeTime = 4000;
+		this.destroyTreeId = 57;
 	}
 
 	preload() {
@@ -34,7 +35,7 @@ export default class GameScene extends Phaser.Scene {
 		const tileset = this.map.addTilesetImage('all_tiles', 'tiles');
 
 		this.background = this.map.createStaticLayer('BackLayer', tileset, 0, 0);
-		this.treesLayer = this.map.createStaticLayer('TreesLayer', tileset, 0, 0);
+		this.treesLayer = this.map.createDynamicLayer('TreesLayer', tileset, 0, 0);
 
 		this.treesLayer.setCollisionByProperty({ collides: true });
 
@@ -70,8 +71,12 @@ export default class GameScene extends Phaser.Scene {
 		// overlap
 
 		this.physics.add.overlap(this.enemy, this.bullets, this.destroyBullet);
-		this.physics.add.collider(this.treesLayer, this.bullets, bullet => {
+		this.physics.add.collider(this.treesLayer, this.bullets, (bullet, tree) => {
 			bullet.destroy();
+			// destroy tree with id
+			if (tree.index === this.destroyTreeId) {
+				this.map.removeTileAt(tree.x, tree.y);
+			}
 		});
 
 		/**
@@ -79,6 +84,7 @@ export default class GameScene extends Phaser.Scene {
 		 */
 		console.log(this.tank);
 		console.log(this.physics);
+		console.log(this.map);
 	}
 
 	update() {
