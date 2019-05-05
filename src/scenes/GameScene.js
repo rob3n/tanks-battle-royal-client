@@ -108,7 +108,7 @@ export default class GameScene extends Phaser.Scene {
 			bullet.destroy();
 
 			setTimeout(() => {
-				this.rebornEnemy();
+				this.reborn();
 			}, 3000);
 		});
 
@@ -117,7 +117,7 @@ export default class GameScene extends Phaser.Scene {
 			bullet.destroy();
 
 			setTimeout(() => {
-				this.reborn();
+				this.rebornEnemy();
 			}, 3000);
 		});
 
@@ -304,6 +304,7 @@ export default class GameScene extends Phaser.Scene {
 		this.enemy.setMaxVelocity(TANK_MAX_VELOCITY, TANK_MAX_VELOCITY);
 		this.enemy.setAngle(this.angle);
 		this.physics.add.collider(this.enemy, this.tank);
+		this.physics.add.collider(this.enemy, this.treesLayer);
 		this.physics.add.collider(this.enemy, this.bullets, (tank, bullet) => {
 			tank.destroy();
 			bullet.destroy();
@@ -322,6 +323,7 @@ export default class GameScene extends Phaser.Scene {
 		this.tank.setMaxVelocity(TANK_MAX_VELOCITY, TANK_MAX_VELOCITY);
 		this.tank.setAngle(this.angle);
 		this.physics.add.collider(this.tank, this.enemy);
+		this.physics.add.collider(this.treesLayer, this.tank);
 		this.physics.add.collider(this.tank, this.enemyBullets, (tank, bullet) => {
 			tank.destroy();
 			bullet.destroy();
