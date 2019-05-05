@@ -17,6 +17,7 @@ export default class GameScene extends Phaser.Scene {
 		this.treesLayer = null;
 		this.cursors = null;
 		this.bullets = null;
+		this.bulletLifeTime = 4000;
 	}
 
 	preload() {
@@ -66,6 +67,13 @@ export default class GameScene extends Phaser.Scene {
 			runChildUpdate: true
 		});
 
+		// overlap
+
+		this.physics.add.overlap(this.enemy, this.bullets, this.destroyBullet);
+		this.physics.add.collider(this.treesLayer, this.bullets, bullet => {
+			bullet.destroy();
+		});
+
 		/**
 		 * Only for debug, remove later
 		 */
@@ -74,8 +82,17 @@ export default class GameScene extends Phaser.Scene {
 	}
 
 	update() {
+		// second variant destroy bullet over map
+		// if (this.bullets.children.entries.length) {
+		// 	this.bullets.children.entries.map(bullet => {
+		// 		if (bullet.x < 0) {
+		// 			bullet.destroy();
+		// 		} else if (bullet.y < 0) {
+		// 			bullet.destroy();
+		// 		}
+		// 	});
+		// }
 		if (!this.isCollision) {
-
 			/**
 			 * PROTOTYPE OF MOVEMENT; WIP
 			 */
@@ -93,9 +110,9 @@ export default class GameScene extends Phaser.Scene {
 			);
 
 			if (this.cursors.left.isDown) {
-				this.tank.setAngularVelocity(-5 * this.velocity / 10);
+				this.tank.setAngularVelocity((-5 * this.velocity) / 10);
 			} else if (this.cursors.right.isDown) {
-				this.tank.setAngularVelocity(5 * this.velocity / 10);
+				this.tank.setAngularVelocity((5 * this.velocity) / 10);
 			} else {
 				this.tank.setAngularVelocity(0);
 			}
@@ -104,9 +121,17 @@ export default class GameScene extends Phaser.Scene {
 			 * PROTOTYPE OF SHOOTING; WIP
 			 */
 			const fireTimestamp = +new Date();
-			if (this.cursors.space.isDown && fireTimestamp - this.lastFired > SHOOTING_TIMEOUT_MS) {
+			if (
+				this.cursors.space.isDown &&
+				fireTimestamp - this.lastFired > SHOOTING_TIMEOUT_MS
+			) {
 				this.lastFired = fireTimestamp;
-				this.fire();
+				const bull = this.fire();
+
+				// first variant with destroy bullet over map
+				setTimeout(() => {
+					bull.destroy();
+				}, this.bulletLifeTime);
 			}
 		}
 	}
@@ -120,6 +145,16 @@ export default class GameScene extends Phaser.Scene {
 				BULLET_SPEED * Math.cos((this.tank.angle - 90) * 0.01745),
 				BULLET_SPEED * Math.sin((this.tank.angle - 90) * 0.01745)
 			);
+
+			return bullet;
 		}
+		return null;
+	}
+
+	destroyBullet(enemy, bullet) {
+		// Remove the enemy
+		console.log(enemy, bullet);
+		// Remove the Bullet
+		bullet.destroy();
 	}
 }
