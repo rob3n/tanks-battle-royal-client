@@ -1,22 +1,22 @@
 import Phaser from 'phaser';
 
-let tank;
-let map;
-let enemy;
-let background;
-let treesLayer;
-
-let cursors;
-const coll = false;
+const TANK_MAX_VELOCITY = 200;
+const SHOOTING_TIMEOUT_MS = 500;
+const BULLET_SPEED = 300;
 
 export default class GameScene extends Phaser.Scene {
 	constructor() {
 		super('Game');
-		this.speed = 200;
-		this.tank = {
-			x: 230,
-			y: 350
-		};
+		this.velocity = 0;
+		this.acceleration = 5;
+		this.lastFired = +new Date();
+		this.isCollision = false;
+		this.map = null;
+		this.tank = null;
+		this.enemy = null;
+		this.treesLayer = null;
+		this.cursors = null;
+		this.bullets = null;
 	}
 
 	preload() {
@@ -28,111 +28,98 @@ export default class GameScene extends Phaser.Scene {
 	}
 
 	create() {
-		map = this.make.tilemap({ key: 'map' });
+		this.map = this.make.tilemap({ key: 'map' });
 		// set layers
-		const tileset = map.addTilesetImage('all_tiles', 'tiles');
+		const tileset = this.map.addTilesetImage('all_tiles', 'tiles');
 
-		background = map.createStaticLayer('BackLayer', tileset, 0, 0);
-		treesLayer = map.createStaticLayer('TreesLayer', tileset, 0, 0);
+		this.background = this.map.createStaticLayer('BackLayer', tileset, 0, 0);
+		this.treesLayer = this.map.createStaticLayer('TreesLayer', tileset, 0, 0);
 
-		console.log(background);
-
-		treesLayer.setCollisionByProperty({ collides: true });
+		this.treesLayer.setCollisionByProperty({ collides: true });
 
 		// create tank sprite with physics
-		tank = this.physics.add.sprite(230, 350, 'tank_blue');
-		enemy = this.physics.add.sprite(350, 350, 'tank_blue');
+		this.tank = this.physics.add.sprite(230, 350, 'tank_blue');
+		this.enemy = this.physics.add.sprite(350, 350, 'tank_blue');
 
-		tank.setCollideWorldBounds(true);
-		tank.scaleX = 0.6;
-		tank.scaleY = 0.6;
+		this.tank.setCollideWorldBounds(true);
+		this.tank.scaleX = 0.6;
+		this.tank.scaleY = 0.6;
+		this.tank.setMaxVelocity(TANK_MAX_VELOCITY, TANK_MAX_VELOCITY);
+		this.tank.setAngle(this.angle);
 
-		enemy.setCollideWorldBounds(true);
-		enemy.scaleX = 0.6;
-		enemy.scaleY = 0.6;
+		this.enemy.setCollideWorldBounds(true);
+		this.enemy.scaleX = 0.6;
+		this.enemy.scaleY = 0.6;
 
 		// collide trees and tank
-		this.physics.add.collider(tank, treesLayer);
-		this.physics.add.collider(enemy, treesLayer);
-		this.physics.add.collider(tank, enemy);
+		this.physics.add.collider(this.tank, this.treesLayer);
+		this.physics.add.collider(this.enemy, this.treesLayer);
+		this.physics.add.collider(this.tank, this.enemy);
 
 		// detect keyboard
-		cursors = this.input.keyboard.createCursorKeys();
+		this.cursors = this.input.keyboard.createCursorKeys();
 
 		// bullet
+		this.bullets = this.physics.add.group({
+			defaultKey: 'bullet',
+			maxSize: 20,
+			runChildUpdate: true
+		});
+
+		/**
+		 * Only for debug, remove later
+		 */
+		console.log(this.tank);
+		console.log(this.physics);
 	}
 
 	update() {
-		const { width, height } = this.sys.game.canvas;
-		if (!coll) {
-			if (cursors.up.isDown && tank.y >= 25) {
-				tank.body.setVelocityY(-this.speed);
-				tank.angle = -180;
-			} else if (cursors.down.isDown && tank.y <= height - 25) {
-				// tank.y += 5;
-				tank.body.setVelocityY(this.speed);
-				tank.angle = 0;
+		if (!this.isCollision) {
+
+			/**
+			 * PROTOTYPE OF MOVEMENT; WIP
+			 */
+			if (this.cursors.up.isDown) {
+				this.velocity += this.acceleration;
+			}
+
+			if (this.cursors.down.isDown) {
+				this.velocity -= this.acceleration;
+			}
+
+			this.tank.setVelocity(
+				this.velocity * Math.cos((this.tank.angle - 90) * 0.01745),
+				this.velocity * Math.sin((this.tank.angle - 90) * 0.01745)
+			);
+
+			if (this.cursors.left.isDown) {
+				this.tank.setAngularVelocity(-5 * this.velocity / 10);
+			} else if (this.cursors.right.isDown) {
+				this.tank.setAngularVelocity(5 * this.velocity / 10);
 			} else {
-				tank.body.setVelocityY(0);
+				this.tank.setAngularVelocity(0);
 			}
 
-			if (cursors.left.isDown && tank.x >= 25) {
-				// tank.x -= 5;
-				tank.body.setVelocityX(-this.speed);
-				tank.angle = 90;
-			} else if (cursors.right.isDown && tank.x <= width - 25) {
-				tank.body.setVelocityX(this.speed);
-				// tank.x += 5;
-				tank.angle = -90;
-			} else {
-				tank.body.setVelocityX(0);
-			}
-
-			if (cursors.left.isDown && cursors.up.isDown) {
-				tank.angle = 135;
-			} else if (cursors.left.isDown && cursors.down.isDown) {
-				tank.angle = 45;
-			}
-
-			if (cursors.right.isDown && cursors.up.isDown) {
-				tank.angle = -135;
-			} else if (cursors.right.isDown && cursors.down.isDown) {
-				tank.angle = -45;
-			}
-
-			if (cursors.space.isDown) {
-				this.makeBullet();
+			/**
+			 * PROTOTYPE OF SHOOTING; WIP
+			 */
+			const fireTimestamp = +new Date();
+			if (this.cursors.space.isDown && fireTimestamp - this.lastFired > SHOOTING_TIMEOUT_MS) {
+				this.lastFired = fireTimestamp;
+				this.fire();
 			}
 		}
 	}
 
-	// setAngle() {
-	// 	let angle = this.physics.moveTo(tank, 1, 1, 60);
-	// 	console.log(angle);
-	// 	angle = this.toDegrees(angle);
-	// 	console.log(angle);
-	// }
+	fire() {
+		const bullet = this.bullets.create(this.tank.x, this.tank.y);
 
-	// toDegrees(angle) {
-	// 	return angle * (180 / Math.Pi);
-	// }
-
-	getDirectionFromAngle(angle) {
-		const rads = (angle * Math.PI) / 180;
-		const tx = Math.cos(rads);
-		const ty = Math.sin(rads);
-		return {
-			tx,
-			ty
-		};
-	}
-
-	makeBullet() {
-		const dirObj = this.getDirectionFromAngle(tank.angle);
-		console.log(tank.angle, dirObj);
-		const bullet = this.physics.add.sprite(tank.x, tank.y, 'bullet');
-		bullet.angle = tank.angle;
-		bullet.body.setVelocity(dirObj.tx * 200, dirObj.ty * 600);
-		console.log(tank);
+		if (bullet) {
+			bullet.setAngle(this.tank.angle);
+			bullet.setVelocity(
+				BULLET_SPEED * Math.cos((this.tank.angle - 90) * 0.01745),
+				BULLET_SPEED * Math.sin((this.tank.angle - 90) * 0.01745)
+			);
+		}
 	}
 }
