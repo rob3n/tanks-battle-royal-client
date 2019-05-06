@@ -1,8 +1,9 @@
 import Phaser from 'phaser';
+import Bullets from '../components/bullets';
+import Tank from '../components/tank';
 
 const TANK_MAX_VELOCITY = 100;
 const SHOOTING_TIMEOUT_MS = 500;
-const BULLET_SPEED = 300;
 
 // TODO: refactoring, create tank and bullets component
 export default class GameScene extends Phaser.Scene {
@@ -16,11 +17,13 @@ export default class GameScene extends Phaser.Scene {
 		this.lastFiredEnemy = +new Date();
 		this.isCollision = false;
 		this.map = null;
-		this.tank = null;
-		this.enemy = null;
 		this.treesLayer = null;
 		this.cursors = null;
-		this.bullets = null;
+		this.bullets = new Bullets({
+			defaultKey: 'bullet',
+			maxSize: 20,
+			runChildUpdate: true
+		});
 		this.bulletLifeTime = 4000;
 		this.destroyTreeId = 57;
 		this.newKeys = null;
@@ -36,6 +39,11 @@ export default class GameScene extends Phaser.Scene {
 	}
 
 	create() {
+		// this.newKeys.W.on('down', () => {
+		// 	if (this.enemyVelocity < TANK_MAX_VELOCITY) {
+		// 		this.enemyVelocity += this.enemyAcceleration;
+		// 	}
+		// });
 		this.map = this.make.tilemap({ key: 'map' });
 		// set layers
 		const tileset = this.map.addTilesetImage('all_tiles', 'tiles');
@@ -45,25 +53,41 @@ export default class GameScene extends Phaser.Scene {
 
 		this.treesLayer.setCollisionByProperty({ collides: true });
 
-		// create tank sprite with physics
-		this.tank = this.physics.add.sprite(230, 350, 'tank_blue');
-		this.enemy = this.physics.add.sprite(350, 350, 'tank_red');
-
-		this.tank.setCollideWorldBounds(true);
-		this.tank.scaleX = 0.6;
-		this.tank.scaleY = 0.6;
-		this.tank.setMaxVelocity(TANK_MAX_VELOCITY, TANK_MAX_VELOCITY);
-		this.tank.setAngle(this.angle);
-
-		this.enemy.setCollideWorldBounds(true);
-
 		// collide trees and tank
-		this.physics.add.collider(this.tank, this.treesLayer);
-		this.physics.add.collider(this.enemy, this.treesLayer);
-		this.physics.add.collider(this.tank, this.enemy);
+
+		this.player = new Tank({
+			scene: this,
+			key: 'tank_first',
+			x: 350,
+			y: 350,
+			texture: 'tank_blue',
+			scale: 0.6,
+			width: 84,
+			height: 92,
+			velocity: 0,
+			acceleration: 5
+		});
+
+		this.enemyPlayer = new Tank({
+			scene: this,
+			key: 'tank_second',
+			x: 100,
+			y: 150,
+			texture: 'tank_red',
+			width: 38,
+			height: 46,
+			velocity: 0,
+			acceleration: 5
+		});
+
+		this.physics.add.collider(this.player, this.enemy);
+		this.physics.add.collider(this.player, this.treesLayer);
+
+		this.physics.add.collider(this.enemyPlayer, this.enemy);
+		this.physics.add.collider(this.enemyPlayer, this.treesLayer);
 
 		// detect keyboard
-		this.newKeys = this.input.keyboard.addKeys('W,S,A,D, C');
+		this.newKeys = this.input.keyboard.addKeys('W,S,A,D,C');
 
 		this.cursors = this.input.keyboard.createCursorKeys();
 
@@ -82,7 +106,7 @@ export default class GameScene extends Phaser.Scene {
 
 		// overlap
 
-		this.physics.add.overlap(this.enemy, this.bullets, this.destroyBullet);
+		// this.physics.add.overlap(this.enemy, this.bullets, this.destroyBullet);
 		this.physics.add.collider(this.treesLayer, this.bullets, (bullet, tree) => {
 			bullet.destroy();
 			// destroy tree with id
@@ -102,146 +126,49 @@ export default class GameScene extends Phaser.Scene {
 				}
 			}
 		);
-
-		this.physics.add.collider(this.tank, this.enemyBullets, (tank, bullet) => {
-			tank.destroy();
-			bullet.destroy();
-
-			setTimeout(() => {
-				this.reborn();
-			}, 3000);
-		});
-
-		this.physics.add.collider(this.enemy, this.bullets, (tank, bullet) => {
-			tank.destroy();
-			bullet.destroy();
-
-			setTimeout(() => {
-				this.rebornEnemy();
-			}, 3000);
-		});
-
 		/**
 		 * Only for debug, remove later
 		 */
-		console.log(this.tank);
-		console.log(this.physics);
-		console.log(this);
+		// console.log(this.tank);
+		// console.log(this.physics);
+		// console.log(this);
+		console.log(this.newKeys);
 	}
 
-	update() {
+	update(time, delta) {
+		this.fire();
 		this.destroyBullets();
 		this.destroyEnemyBullets();
+		const playerKeys = {
+			left: this.cursors.left,
+			right: this.cursors.right,
+			down: this.cursors.down,
+			up: this.cursors.up,
+			fire: this.cursors.space
+		};
 
-		if (!this.isCollision) {
-			/**
-			 * PROTOTYPE OF MOVEMENT; WIP
-			 */
-			if (this.cursors.up.isDown && this.velocity < TANK_MAX_VELOCITY) {
-				this.velocity += this.acceleration;
-			}
+		const enemyPlayerKeys = {
+			left: this.newKeys.A,
+			right: this.newKeys.D,
+			down: this.newKeys.S,
+			up: this.newKeys.W,
+			fire: this.newKeys.C
+		};
 
-			if (
-				this.cursors.down.isDown &&
-				this.velocity > (TANK_MAX_VELOCITY * -1) / 2
-			) {
-				if (this.velocity > 0) {
-					this.velocity -= this.acceleration * 2;
-				} else {
-					this.velocity -= this.acceleration / 2;
-				}
-			}
-
-			// check variants for condition: WIP
-			if (this.tank.scene) {
-				this.tank.setVelocity(
-					this.velocity * Math.cos((this.tank.angle - 90) * 0.01745),
-					this.velocity * Math.sin((this.tank.angle - 90) * 0.01745)
-				);
-
-				if (this.cursors.left.isDown) {
-					this.tank.setAngularVelocity((-5 * this.velocity) / 10);
-				} else if (this.cursors.right.isDown) {
-					this.tank.setAngularVelocity((5 * this.velocity) / 10);
-				} else {
-					this.tank.setAngularVelocity(0);
-				}
-
-				/**
-				 * PROTOTYPE OF SHOOTING; WIP
-				 */
-				const fireTimestamp = +new Date();
-				if (
-					this.cursors.space.isDown &&
-					fireTimestamp - this.lastFired > SHOOTING_TIMEOUT_MS
-				) {
-					this.lastFired = fireTimestamp;
-					this.fire();
-				}
-			}
-
-			// enemy
-			this.newKeys.W.on('down', () => {
-				if (this.enemyVelocity < TANK_MAX_VELOCITY) {
-					this.enemyVelocity += this.enemyAcceleration;
-				}
-			});
-			this.newKeys.S.on('down', () => {
-				if (this.enemyVelocity > (TANK_MAX_VELOCITY * -1) / 2) {
-					if (this.enemyVelocity > 0) {
-						this.enemyVelocity -= this.enemyAcceleration * 2;
-					} else {
-						this.enemyVelocity -= this.enemyAcceleration / 2;
-					}
-				}
-			});
-
-			if (this.enemy.scene) {
-				this.enemy.setVelocity(
-					this.enemyVelocity * Math.cos((this.enemy.angle - 90) * 0.01745),
-					this.enemyVelocity * Math.sin((this.enemy.angle - 90) * 0.01745)
-				);
-
-				this.newKeys.A.on('down', () => {
-					this.enemy.setAngularVelocity((-5 * this.enemyVelocity) / 10);
-				});
-
-				this.newKeys.D.on('down', () => {
-					this.enemy.setAngularVelocity((5 * this.enemyVelocity) / 10);
-				});
-
-				this.newKeys.D.on('up', () => {
-					this.enemy.setAngularVelocity(0);
-				});
-				this.newKeys.A.on('up', () => {
-					this.enemy.setAngularVelocity(0);
-				});
-
-				/**
-				 * PROTOTYPE OF SHOOTING; WIP
-				 */
-				const enemyfireTimestamp = +new Date();
-
-				this.newKeys.C.on('down', () => {
-					if (enemyfireTimestamp - this.lastFiredEnemy > SHOOTING_TIMEOUT_MS) {
-						this.lastFiredEnemy = enemyfireTimestamp;
-						this.fireEnemy();
-					}
-				});
-			}
-		}
+		this.player.update(playerKeys, time, delta);
+		this.enemyPlayer.update(enemyPlayerKeys, time, delta);
 	}
 
 	fire() {
-		const bullet = this.bullets.create(this.tank.x, this.tank.y);
+		const bullet = this.bullets.create(300, 400);
 
-		if (bullet) {
-			bullet.setAngle(this.tank.angle);
-			bullet.setVelocity(
-				BULLET_SPEED * Math.cos((this.tank.angle - 90) * 0.01745),
-				BULLET_SPEED * Math.sin((this.tank.angle - 90) * 0.01745)
-			);
-		}
+		// if (bullet) {
+		// 	bullet.setAngle(this.tank.angle);
+		// 	bullet.setVelocity(
+		// 		300 * Math.cos((this.tank.angle - 90) * 0.01745),
+		// 		300 * Math.sin((this.tank.angle - 90) * 0.01745)
+		// 	);
+		// }
 	}
 
 	destroyBullets() {
