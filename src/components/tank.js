@@ -1,5 +1,4 @@
 import Phaser from 'phaser';
-import Bullets from './bullets';
 
 const TANK_MAX_VELOCITY = 100;
 const SHOOTING_TIMEOUT_MS = 500;
@@ -10,14 +9,11 @@ const BULLET_SPEED = 300;
 export default class Tank extends Phaser.Physics.Arcade.Sprite {
 	constructor(config) {
 		super(config.scene, config.x, config.y, config.key);
+		this.scene = config.scene;
 		this.velocity = 0;
 		this.acceleration = 5;
 		this.lastFired = +new Date();
-		this.bullets = new Bullets({
-			defaultKey: 'bullet',
-			maxSize: 20,
-			runChildUpdate: true
-		});
+		this.bullets = null;
 
 		config.scene.physics.world.enable(this);
 		config.scene.add.existing(this);
@@ -33,7 +29,8 @@ export default class Tank extends Phaser.Physics.Arcade.Sprite {
 		this.setAngle(0);
 	}
 
-	update(keys) {
+	update(keys, bullets) {
+		// this.destroyBullets(bullets);
 		const input = {
 			left: keys.left.isDown,
 			right: keys.right.isDown,
@@ -42,39 +39,41 @@ export default class Tank extends Phaser.Physics.Arcade.Sprite {
 			fire: keys.fire.isDown
 		};
 
-		if (input.up && this.velocity < TANK_MAX_VELOCITY) {
-			this.velocity += this.acceleration;
-		}
-
-		if (input.down && this.velocity > (TANK_MAX_VELOCITY * -1) / 2) {
-			if (this.velocity > 0) {
-				this.velocity -= this.acceleration * 2;
-			} else {
-				this.velocity -= this.acceleration / 2;
+		if (this.scene) {
+			if (input.up && this.velocity < TANK_MAX_VELOCITY) {
+				this.velocity += this.acceleration;
 			}
-		}
 
-		// check variants for condition: WIP
-		this.setVelocity(
-			this.velocity * Math.cos((this.angle - 90) * 0.01745),
-			this.velocity * Math.sin((this.angle - 90) * 0.01745)
-		);
+			if (input.down && this.velocity > (TANK_MAX_VELOCITY * -1) / 2) {
+				if (this.velocity > 0) {
+					this.velocity -= this.acceleration * 2;
+				} else {
+					this.velocity -= this.acceleration / 2;
+				}
+			}
 
-		if (input.left) {
-			this.setAngularVelocity((-5 * this.velocity) / 10);
-		} else if (input.right) {
-			this.setAngularVelocity((5 * this.velocity) / 10);
-		} else {
-			this.setAngularVelocity(0);
-		}
+			// check variants for condition: WIP
+			this.setVelocity(
+				this.velocity * Math.cos((this.angle - 90) * 0.01745),
+				this.velocity * Math.sin((this.angle - 90) * 0.01745)
+			);
 
-		/**
-		 * PROTOTYPE OF SHOOTING; WIP
-		 */
-		const fireTimestamp = +new Date();
-		if (input.fire && fireTimestamp - this.lastFired > SHOOTING_TIMEOUT_MS) {
-			this.lastFired = fireTimestamp;
-			// this.fire();
+			if (input.left) {
+				this.setAngularVelocity((-5 * this.velocity) / 10);
+			} else if (input.right) {
+				this.setAngularVelocity((5 * this.velocity) / 10);
+			} else {
+				this.setAngularVelocity(0);
+			}
+
+			/**
+			 * PROTOTYPE OF SHOOTING; WIP
+			 */
+			const fireTimestamp = +new Date();
+			if (input.fire && fireTimestamp - this.lastFired > SHOOTING_TIMEOUT_MS) {
+				this.lastFired = fireTimestamp;
+				this.fire(bullets);
+			}
 		}
 	}
 
@@ -89,17 +88,17 @@ export default class Tank extends Phaser.Physics.Arcade.Sprite {
 		}
 	}
 
-	destroyBullets() {
-		const bullets = this.bullets.children.entries;
-		if (bullets.length) {
-			for (let i = 0; i < bullets.length; i += 1) {
-				const bullet = bullets[i];
+	destroyBullets(bullets) {
+		const bulletsArr = bullets.children.entries;
+		if (bulletsArr.length) {
+			for (let i = 0; i < bulletsArr.length; i += 1) {
+				const bullet = bulletsArr[i];
 
 				if (bullet.y <= 0) {
 					bullet.destroy();
 				}
 
-				if (bullet.y >= this.cameras.main.height) {
+				if (bullet.y >= 700) {
 					bullet.destroy();
 				}
 
