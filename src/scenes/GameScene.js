@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import io from 'socket.io-client';
 import Tank from '../components/tank';
 
 // TODO: refactoring, create tank and bullets component
@@ -41,6 +42,9 @@ export default class GameScene extends Phaser.Scene {
 			maxSize: 20,
 			runChildUpdate: true
 		};
+		this.playerSocket = io('http://localhost:3000');
+		this.playerSocket.on('connect', this.onConnect);
+		this.playerSocket.on('tanks info', console.log)
 	}
 
 	preload() {
@@ -97,6 +101,11 @@ export default class GameScene extends Phaser.Scene {
 		this.enemyPlayer.update(enemyPlayerKeys, this.enemyBullets);
 		this.player.destroyBullets(this.bullets);
 		this.enemyPlayer.destroyBullets(this.enemyBullets);
+
+		/**
+		 * EXECUTE THIS FUNCTION ONLY WHEN ARROWS IS DOWN!!!
+		 */
+		this.sharePosition();
 	}
 
 	createPlayer(scene) {
@@ -157,5 +166,17 @@ export default class GameScene extends Phaser.Scene {
 				}
 			}
 		);
+	}
+
+	onConnect() {
+		console.log('Connected');
+	}
+
+	sharePosition() {
+		const {x, y} = this.player;
+
+		this.playerSocket.emit('tank info', {
+			x, y
+		});
 	}
 }
