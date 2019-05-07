@@ -1,8 +1,8 @@
 import Phaser from 'phaser';
 
-const TANK_MAX_VELOCITY = 100;
+const TANK_MAX_VELOCITY = 150;
 const SHOOTING_TIMEOUT_MS = 500;
-const BULLET_SPEED = 300;
+const BULLET_SPEED = 400;
 
 // need added bullets logic: WIP
 
@@ -24,6 +24,7 @@ export default class Tank extends Phaser.Physics.Arcade.Sprite {
 		this.setSize(config.width, config.height);
 		// centered
 		this.setOffset(1, 1);
+		//
 		this.setVelocity(config.velocity, config.velocity);
 		this.setAcceleration(config.acceleration);
 		this.setAngle(0);
@@ -98,7 +99,7 @@ export default class Tank extends Phaser.Physics.Arcade.Sprite {
 					bullet.destroy();
 				}
 
-				if (bullet.y >= 700) {
+				if (bullet.y >= this.scene.cameras.main.height) {
 					bullet.destroy();
 				}
 
