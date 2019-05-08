@@ -20,8 +20,7 @@
 	"homepage": "https://github.com/rob3n/tanks-battle-royal-client#readme",
 	"dependencies": {
 		"@babel/core": "^7.4.4",
-		"phaser": "^3.16.2",
-		"socket.io": "^2.2.0"
+		"phaser": "^3.16.2"
 	},
 	"devDependencies": {
 		"babel": "^6.23.0",

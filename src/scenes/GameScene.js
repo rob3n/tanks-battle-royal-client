@@ -1,5 +1,4 @@
 import Phaser from 'phaser';
-import io from 'socket.io-client';
 import Tank from '../components/tank';
 
 // TODO: refactoring, create tank and bullets component
@@ -42,6 +41,7 @@ export default class GameScene extends Phaser.Scene {
 			maxSize: 20,
 			runChildUpdate: true
 		};
+
 		this.playerSocket = io('http://localhost:3000');
 		this.playerSocket.on('connect', this.onConnect);
 		// this.playerSocket.on('tanks info', console.log);
@@ -131,86 +131,10 @@ export default class GameScene extends Phaser.Scene {
 			fire: this.newKeys.C
 		};
 
-		if (this.player) {
-			this.player.update(playerKeys, this.bullets);
-			this.player.destroyBullets(this.bullets);
-		}
-		if (this.enemyPlayer) {
-			this.enemyPlayer.update(enemyPlayerKeys, this.enemyBullets);
-			this.enemyPlayer.destroyBullets(this.enemyBullets);
-		}
-		/**
-		 * EXECUTE THIS FUNCTION ONLY WHEN ARROWS IS DOWN!!!
-		 */
-		this.sharePosition();
-
-		if (this.ship) {
-			if (this.cursors.left.isDown) {
-				this.ship.setAngularVelocity(-150);
-			} else if (this.cursors.right.isDown) {
-				this.ship.setAngularVelocity(150);
-			} else {
-				this.ship.setAngularVelocity(0);
-			}
-
-			if (this.cursors.up.isDown) {
-				this.physics.velocityFromRotation(
-					this.ship.rotation + 1.5,
-					100,
-					this.ship.body.acceleration
-				);
-			} else {
-				this.ship.setAcceleration(0);
-			}
-
-			this.physics.world.wrap(this.ship, 5);
-
-			// emit player movement
-			const { x } = this.ship;
-			const { y } = this.ship;
-			const r = this.ship.rotation;
-			if (
-				this.ship.oldPosition &&
-				(x !== this.ship.oldPosition.x ||
-					y !== this.ship.oldPosition.y ||
-					r !== this.ship.oldPosition.rotation)
-			) {
-				this.playerSocket.emit('playerMovement', {
-					x: this.ship.x,
-					y: this.ship.y,
-					rotation: this.ship.rotation
-				});
-			}
-			// save old position data
-			this.ship.oldPosition = {
-				x: this.ship.x,
-				y: this.ship.y,
-				rotation: this.ship.rotation
-			};
-		}
-	}
-
-	addPlayer(scene, playerInfo) {
-		scene.ship = scene.physics.add
-			.image(playerInfo.x, playerInfo.y, 'tank_blue')
-			.setOrigin(0.5, 0.5)
-			.setDisplaySize(53, 40);
-
-		scene.ship.setDrag(100);
-		scene.ship.setAngularDrag(100);
-		scene.ship.setMaxVelocity(200);
-	}
-
-	addOtherPlayers(scene, playerInfo) {
-		const otherPlayer = scene.add
-			.sprite(playerInfo.x, playerInfo.y, 'tank_red')
-			.setOrigin(0.5, 0.5)
-			.setDisplaySize(53, 40);
-
-		otherPlayer.playerId = playerInfo.playerId;
-		if (scene.otherPlayers) {
-			scene.otherPlayers.add(otherPlayer);
-		}
+		this.player.update(playerKeys, this.bullets);
+		this.enemyPlayer.update(enemyPlayerKeys, this.enemyBullets);
+		this.player.destroyBullets(this.bullets);
+		this.enemyPlayer.destroyBullets(this.enemyBullets);
 	}
 
 	createPlayer(scene) {
