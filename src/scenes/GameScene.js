@@ -44,7 +44,7 @@ export default class GameScene extends Phaser.Scene {
 		};
 		this.playerSocket = io('http://localhost:3000');
 		this.playerSocket.on('connect', this.onConnect);
-		this.playerSocket.on('tanks info', console.log)
+		// this.playerSocket.on('tanks info', console.log);
 	}
 
 	preload() {
@@ -57,6 +57,7 @@ export default class GameScene extends Phaser.Scene {
 	}
 
 	create() {
+		this.otherPlayers = this.physics.add.group();
 		// create map with tiles and collides
 		this.map = this.make.tilemap({ key: 'map' });
 		const tileset = this.map.addTilesetImage('all_tiles', 'tiles');
@@ -65,8 +66,41 @@ export default class GameScene extends Phaser.Scene {
 		this.treesLayer.setCollisionByProperty({ collides: true });
 
 		// create tanks with configs
-		this.createPlayer(this);
-		this.createEnemyPlayer(this);
+		this.playerSocket.on('currentPlayers', players => {
+			Object.keys(players).forEach(id => {
+				if (players[id].playerId === this.playerSocket.id) {
+					this.addPlayer(this, players[id]);
+				} else {
+					this.addOtherPlayers(this, players[id]);
+				}
+			});
+		});
+
+		this.playerSocket.on('newPlayer', playerInfo => {
+			this.addOtherPlayers(this, playerInfo);
+		});
+
+		this.playerSocket.on('disconnect', playerId => {
+			if (this.otherPlayers) {
+				this.otherPlayers.getChildren().forEach(otherPlayer => {
+					if (playerId === otherPlayer.playerId) {
+						otherPlayer.destroy();
+					}
+				});
+			}
+		});
+
+		this.playerSocket.on('playerMoved', playerInfo => {
+			this.otherPlayers.getChildren().forEach(otherPlayer => {
+				if (playerInfo.playerId === otherPlayer.playerId) {
+					otherPlayer.setRotation(playerInfo.rotation);
+					otherPlayer.setPosition(playerInfo.x, playerInfo.y);
+				}
+			});
+		});
+
+		// this.createPlayer(this);
+		// this.createEnemyPlayer(this);
 
 		// detect keyboard
 		this.newKeys = this.input.keyboard.addKeys('W,S,A,D,C');
@@ -97,19 +131,91 @@ export default class GameScene extends Phaser.Scene {
 			fire: this.newKeys.C
 		};
 
-		this.player.update(playerKeys, this.bullets);
-		this.enemyPlayer.update(enemyPlayerKeys, this.enemyBullets);
-		this.player.destroyBullets(this.bullets);
-		this.enemyPlayer.destroyBullets(this.enemyBullets);
-
+		if (this.player) {
+			this.player.update(playerKeys, this.bullets);
+			this.player.destroyBullets(this.bullets);
+		}
+		if (this.enemyPlayer) {
+			this.enemyPlayer.update(enemyPlayerKeys, this.enemyBullets);
+			this.enemyPlayer.destroyBullets(this.enemyBullets);
+		}
 		/**
 		 * EXECUTE THIS FUNCTION ONLY WHEN ARROWS IS DOWN!!!
 		 */
 		this.sharePosition();
+
+		if (this.ship) {
+			if (this.cursors.left.isDown) {
+				this.ship.setAngularVelocity(-150);
+			} else if (this.cursors.right.isDown) {
+				this.ship.setAngularVelocity(150);
+			} else {
+				this.ship.setAngularVelocity(0);
+			}
+
+			if (this.cursors.up.isDown) {
+				this.physics.velocityFromRotation(
+					this.ship.rotation + 1.5,
+					100,
+					this.ship.body.acceleration
+				);
+			} else {
+				this.ship.setAcceleration(0);
+			}
+
+			this.physics.world.wrap(this.ship, 5);
+
+			// emit player movement
+			const { x } = this.ship;
+			const { y } = this.ship;
+			const r = this.ship.rotation;
+			if (
+				this.ship.oldPosition &&
+				(x !== this.ship.oldPosition.x ||
+					y !== this.ship.oldPosition.y ||
+					r !== this.ship.oldPosition.rotation)
+			) {
+				this.playerSocket.emit('playerMovement', {
+					x: this.ship.x,
+					y: this.ship.y,
+					rotation: this.ship.rotation
+				});
+			}
+			// save old position data
+			this.ship.oldPosition = {
+				x: this.ship.x,
+				y: this.ship.y,
+				rotation: this.ship.rotation
+			};
+		}
+	}
+
+	addPlayer(scene, playerInfo) {
+		scene.ship = scene.physics.add
+			.image(playerInfo.x, playerInfo.y, 'tank_blue')
+			.setOrigin(0.5, 0.5)
+			.setDisplaySize(53, 40);
+
+		scene.ship.setDrag(100);
+		scene.ship.setAngularDrag(100);
+		scene.ship.setMaxVelocity(200);
+	}
+
+	addOtherPlayers(scene, playerInfo) {
+		const otherPlayer = scene.add
+			.sprite(playerInfo.x, playerInfo.y, 'tank_red')
+			.setOrigin(0.5, 0.5)
+			.setDisplaySize(53, 40);
+
+		otherPlayer.playerId = playerInfo.playerId;
+		if (scene.otherPlayers) {
+			scene.otherPlayers.add(otherPlayer);
+		}
 	}
 
 	createPlayer(scene) {
 		this.player = new Tank(this.playerConfig);
+		this.bullets = this.physics.add.group(this.defaultBulletConfig);
 		this.enemyBullets = this.physics.add.group(this.defaultBulletConfig);
 		this.physics.add.collider(this.player, this.treesLayer);
 		this.physics.add.collider(this.player, this.enemyPlayer);
@@ -141,8 +247,10 @@ export default class GameScene extends Phaser.Scene {
 	createEnemyPlayer(scene) {
 		this.enemyPlayer = new Tank(this.enemyConfig);
 		this.bullets = this.physics.add.group(this.defaultBulletConfig);
+		this.enemyBullets = this.physics.add.group(this.defaultBulletConfig);
 		this.physics.add.collider(this.enemyPlayer, this.treesLayer);
 		this.physics.add.collider(this.enemyPlayer, this.player);
+		this.enemyPlayer.setPos(500, 500);
 		this.physics.add.collider(
 			this.enemyPlayer,
 			this.bullets,
@@ -173,10 +281,13 @@ export default class GameScene extends Phaser.Scene {
 	}
 
 	sharePosition() {
-		const {x, y} = this.player;
+		if (this.enemyPlayer) {
+			const { x, y } = this.enemyPlayer;
 
-		this.playerSocket.emit('tank info', {
-			x, y
-		});
+			this.playerSocket.emit('tank info', {
+				x,
+				y
+			});
+		}
 	}
 }

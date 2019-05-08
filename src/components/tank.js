@@ -28,6 +28,8 @@ export default class Tank extends Phaser.Physics.Arcade.Sprite {
 		this.setVelocity(config.velocity, config.velocity);
 		this.setAcceleration(config.acceleration);
 		this.setAngle(0);
+
+		console.log(this);
 	}
 
 	update(keys, bullets) {
@@ -78,33 +80,42 @@ export default class Tank extends Phaser.Physics.Arcade.Sprite {
 		}
 	}
 
+	setPos(x, y) {
+		this.setPosition(x, y);
+	}
+
 	fire(bullets) {
-		const bullet = bullets.create(this.x, this.y);
-		if (bullet) {
-			bullet.setAngle(this.angle);
-			bullet.setVelocity(
-				BULLET_SPEED * Math.cos((this.angle - 90) * 0.01745),
-				BULLET_SPEED * Math.sin((this.angle - 90) * 0.01745)
-			);
+		if (bullets) {
+			console.log(this.scene);
+			const bullet = bullets.create(this.x, this.y);
+			if (bullet) {
+				bullet.setAngle(this.angle);
+				bullet.setVelocity(
+					BULLET_SPEED * Math.cos((this.angle - 90) * 0.01745),
+					BULLET_SPEED * Math.sin((this.angle - 90) * 0.01745)
+				);
+			}
 		}
 	}
 
 	destroyBullets(bullets) {
-		const bulletsArr = bullets.children.entries;
-		if (bulletsArr.length) {
-			for (let i = 0; i < bulletsArr.length; i += 1) {
-				const bullet = bulletsArr[i];
+		if (bullets) {
+			const bulletsArr = bullets.children.entries;
+			if (bulletsArr.length) {
+				for (let i = 0; i < bulletsArr.length; i += 1) {
+					const bullet = bulletsArr[i];
 
-				if (bullet.y <= 0) {
-					bullet.destroy();
-				}
+					if (bullet.y <= 0) {
+						bullet.destroy();
+					}
 
-				if (bullet.y >= this.scene.cameras.main.height) {
-					bullet.destroy();
-				}
+					if (bullet.y >= this.scene.cameras.main.height) {
+						bullet.destroy();
+					}
 
-				if (bullet.x <= 0) {
-					bullet.destroy();
+					if (bullet.x <= 0) {
+						bullet.destroy();
+					}
 				}
 			}
 		}
