@@ -37,7 +37,7 @@ export default class GameScene extends Phaser.Scene {
 		this.playerSocket = io('http://localhost:3000');
 		this.playerSocket.on('connect', this.onConnect);
 		this.playerSocket.on('tanks info', this.updatePlayers.bind(this));
-		this.playerSocket.on('new player', (info) => {
+		this.playerSocket.on('new player', info => {
 			console.log('New player. Info:');
 			console.log(info);
 			console.log(this.playerSocket.id);
@@ -63,6 +63,12 @@ export default class GameScene extends Phaser.Scene {
 		this.treesLayer = this.map.createDynamicLayer('TreesLayer', tileset, 0, 0);
 		this.treesLayer.setCollisionByProperty({ collides: true });
 
+		this.playerSocket.on('disconnect', playerId => {
+			if (this.players[playerId].id === playerId) {
+				this.players[playerId].destroy();
+			}
+		});
+
 		// create tanks with configs
 		// this.playerSocket.on('currentPlayers', players => {
 		// 	Object.keys(players).forEach(id => {
@@ -78,15 +84,6 @@ export default class GameScene extends Phaser.Scene {
 		// 	this.addOtherPlayers(this, playerInfo);
 		// });
 		//
-		// this.playerSocket.on('disconnect', playerId => {
-		// 	if (this.otherPlayers) {
-		// 		this.otherPlayers.getChildren().forEach(otherPlayer => {
-		// 			if (playerId === otherPlayer.playerId) {
-		// 				otherPlayer.destroy();
-		// 			}
-		// 		});
-		// 	}
-		// });
 		//
 		// this.playerSocket.on('playerMoved', playerInfo => {
 		// 	this.otherPlayers.getChildren().forEach(otherPlayer => {
@@ -136,7 +133,7 @@ export default class GameScene extends Phaser.Scene {
 		this.sharePosition();
 	}
 
-	createPlayer(scene) {
+	createPlayer() {
 		this.player = new Tank(this.playerConfig);
 		this.bullets = this.physics.add.group(this.defaultBulletConfig);
 		// this.enemyBullets = this.physics.add.group(this.defaultBulletConfig);
@@ -185,18 +182,14 @@ export default class GameScene extends Phaser.Scene {
 		this.physics.add.collider(enemy, this.treesLayer);
 		this.physics.add.collider(enemy, this.player);
 		// enemy.setPos(500, 500);
-		this.physics.add.collider(
-			enemy,
-			this.bullets,
-			(bullet, enemy) => {
-				bullet.destroy();
-				enemy.destroy();
+		this.physics.add.collider(enemy, this.bullets, (bullet, enemyTank) => {
+			bullet.destroy();
+			enemyTank.destroy();
 
-				setTimeout(() => {
-					this.createEnemyPlayer(info);
-				}, this.rebornTankTime);
-			}
-		);
+			setTimeout(() => {
+				this.createEnemyPlayer(info);
+			}, this.rebornTankTime);
+		});
 		this.physics.add.collider(
 			scene.treesLayer,
 			this.bullets,
@@ -208,9 +201,9 @@ export default class GameScene extends Phaser.Scene {
 				}
 			}
 		);
-		console.log(this.players)
+		console.log(this.players);
 		this.players[info.id] = enemy;
-		console.log(this.players)
+		console.log(this.players);
 	}
 
 	onConnect() {
@@ -221,7 +214,9 @@ export default class GameScene extends Phaser.Scene {
 		const { x, y, angle } = this.player;
 
 		this.playerSocket.emit('tank info', {
-			x, y, angle
+			x,
+			y,
+			angle
 		});
 	}
 
@@ -235,5 +230,6 @@ export default class GameScene extends Phaser.Scene {
 		this.players[info.id].x = info.x;
 		this.players[info.id].y = info.y;
 		this.players[info.id].angle = info.angle;
+		this.players[info.id].id = info.id;
 	}
 }
