@@ -2,7 +2,6 @@ import Phaser from 'phaser';
 import io from 'socket.io-client';
 import Tank from '../components/tank';
 
-// TODO: refactoring, create tank and bullets component
 export default class GameScene extends Phaser.Scene {
 	constructor() {
 		super('Game');
@@ -12,7 +11,6 @@ export default class GameScene extends Phaser.Scene {
 		this.bullets = null;
 		this.rebornTankTime = 4000;
 		this.destroyTreeId = 57;
-		this.newKeys = null;
 		this.players = {};
 		this.listPlayer = [];
 
@@ -26,7 +24,8 @@ export default class GameScene extends Phaser.Scene {
 			width: 84,
 			height: 92,
 			velocity: 0,
-			acceleration: 5
+			acceleration: 5,
+			angle: 0
 		};
 		this.defaultBulletConfig = {
 			defaultKey: 'bullet',
@@ -35,78 +34,37 @@ export default class GameScene extends Phaser.Scene {
 		};
 
 		this.playerSocket = io('http://localhost:3000');
-		this.playerSocket.on('connect', this.onConnect);
-		this.playerSocket.on('tanks info', this.updatePlayers.bind(this));
-		this.playerSocket.on('new player', info => {
-			console.log('New player. Info:');
-			console.log(info);
-			console.log(this.playerSocket.id);
-			this.createEnemyPlayer(this, info);
-		});
+		this.playerSocket.on('connect', this.onConnect.bind(this));
 	}
 
 	preload() {
 		this.load.image('tank_blue', 'assets/tank_blue.png');
 		this.load.image('tank_red', 'assets/tank_red.png');
 		this.load.image('bullet', 'assets/bullet.png');
-
 		this.load.image('tiles', 'assets/all_tiles.png');
 		this.load.tilemapTiledJSON('map', 'assets/map.json');
 	}
 
 	create() {
-		// this.otherPlayers = this.physics.add.group();
-		// create map with tiles and collides
 		this.map = this.make.tilemap({ key: 'map' });
 		const tileset = this.map.addTilesetImage('all_tiles', 'tiles');
 		this.background = this.map.createStaticLayer('BackLayer', tileset, 0, 0);
 		this.treesLayer = this.map.createDynamicLayer('TreesLayer', tileset, 0, 0);
 		this.treesLayer.setCollisionByProperty({ collides: true });
 
-		this.playerSocket.on('disconnect', playerId => {
-			if (this.players[playerId].id === playerId) {
-				this.players[playerId].destroy();
+		this.playerSocket.on('player disconnect', playerId => {
+			if (!this.players[playerId]) {
+				return;
 			}
+			this.players[playerId].destroy();
+			delete this.players[playerId];
 		});
 
-		// create tanks with configs
-		// this.playerSocket.on('currentPlayers', players => {
-		// 	Object.keys(players).forEach(id => {
-		// 		if (players[id].playerId === this.playerSocket.id) {
-		// 			this.addPlayer(this, players[id]);
-		// 		} else {
-		// 			this.addOtherPlayers(this, players[id]);
-		// 		}
-		// 	});
-		// });
-		//
-		// this.playerSocket.on('newPlayer', playerInfo => {
-		// 	this.addOtherPlayers(this, playerInfo);
-		// });
-		//
-		//
-		// this.playerSocket.on('playerMoved', playerInfo => {
-		// 	this.otherPlayers.getChildren().forEach(otherPlayer => {
-		// 		if (playerInfo.playerId === otherPlayer.playerId) {
-		// 			otherPlayer.setRotation(playerInfo.rotation);
-		// 			otherPlayer.setPosition(playerInfo.x, playerInfo.y);
-		// 		}
-		// 	});
-		// });
-
 		this.createPlayer(this);
-		// this.createEnemyPlayer(this);
-
-		// detect keyboard
-		this.newKeys = this.input.keyboard.addKeys('W,S,A,D,C');
 		this.cursors = this.input.keyboard.createCursorKeys();
-
-		/**
-		 * Only for debug, remove later
-		 */
-		// console.log(this.tank);
-		// console.log(this.physics);
-		// console.log(this);
+		
+		this.playerSocket.on('tanks info', this.updatePlayers.bind(this));
+		this.playerSocket.on('new player', (info) => this.createEnemyPlayer(this, info));
 	}
 
 	update() {
@@ -118,50 +76,16 @@ export default class GameScene extends Phaser.Scene {
 			fire: this.cursors.space
 		};
 
-		// const enemyPlayerKeys = {
-		// 	left: this.newKeys.A,
-		// 	right: this.newKeys.D,
-		// 	down: this.newKeys.S,
-		// 	up: this.newKeys.W,
-		// 	fire: this.newKeys.C
-		// };
-
 		this.player.update(playerKeys, this.bullets);
-		// this.enemyPlayer.update(enemyPlayerKeys, this.enemyBullets);
 		this.player.destroyBullets(this.bullets);
-		// this.enemyPlayer.destroyBullets(this.enemyBullets);
 		this.sharePosition();
 	}
 
 	createPlayer() {
 		this.player = new Tank(this.playerConfig);
 		this.bullets = this.physics.add.group(this.defaultBulletConfig);
-		// this.enemyBullets = this.physics.add.group(this.defaultBulletConfig);
 		this.physics.add.collider(this.player, this.treesLayer);
 		this.physics.add.collider(this.player, this.enemyPlayer);
-		// this.physics.add.collider(
-		// 	this.player,
-		// 	this.enemyBullets,
-		// 	(bullet, enemy) => {
-		// 		bullet.destroy();
-		// 		enemy.destroy();
-		//
-		// 		setTimeout(() => {
-		// 			this.createPlayer(scene);
-		// 		}, this.rebornTankTime);
-		// 	}
-		// );
-		// this.physics.add.collider(
-		// 	scene.treesLayer,
-		// 	this.enemyBullets,
-		// 	(bullet, tree) => {
-		// 		bullet.destroy();
-		// 		// destroy tree with id
-		// 		if (tree.index === this.destroyTreeId) {
-		// 			scene.map.removeTileAt(tree.x, tree.y);
-		// 		}
-		// 	}
-		// );
 	}
 
 	createEnemyPlayer(scene, info) {
@@ -181,7 +105,6 @@ export default class GameScene extends Phaser.Scene {
 		this.enemyBullets = this.physics.add.group(this.defaultBulletConfig);
 		this.physics.add.collider(enemy, this.treesLayer);
 		this.physics.add.collider(enemy, this.player);
-		// enemy.setPos(500, 500);
 		this.physics.add.collider(enemy, this.bullets, (bullet, enemyTank) => {
 			bullet.destroy();
 			enemyTank.destroy();
@@ -195,15 +118,12 @@ export default class GameScene extends Phaser.Scene {
 			this.bullets,
 			(bullet, tree) => {
 				bullet.destroy();
-				// destroy tree with id
 				if (tree.index === this.destroyTreeId) {
 					scene.map.removeTileAt(tree.x, tree.y);
 				}
 			}
 		);
-		console.log(this.players);
 		this.players[info.id] = enemy;
-		console.log(this.players);
 	}
 
 	onConnect() {
@@ -212,24 +132,18 @@ export default class GameScene extends Phaser.Scene {
 
 	sharePosition() {
 		const { x, y, angle } = this.player;
-
-		this.playerSocket.emit('tank info', {
-			x,
-			y,
-			angle
-		});
+		this.playerSocket.emit('tank info', {x, y, angle});
 	}
 
 	updatePlayers(info) {
 		if (info.id === this.playerSocket.id) return;
-
 		if (!this.players[info.id]) {
+			this.createEnemyPlayer(this, info);
 			return;
 		}
 
 		this.players[info.id].x = info.x;
 		this.players[info.id].y = info.y;
 		this.players[info.id].angle = info.angle;
-		this.players[info.id].id = info.id;
 	}
 }
