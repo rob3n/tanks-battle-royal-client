@@ -1,4 +1,6 @@
 import Phaser from 'phaser';
+import Menu from '../scenes/Menu';
+import Game from '../scenes/Game';
 
 export default {
 	type: Phaser.AUTO,
@@ -9,5 +11,6 @@ export default {
 		arcade: {
 			debug: true
 		}
-	}
+	},
+	scene: [Menu, Game]
 };
