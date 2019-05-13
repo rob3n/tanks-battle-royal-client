@@ -2,9 +2,11 @@ import Phaser from 'phaser';
 import io from 'socket.io-client';
 import Tank from '../components/tank';
 
-export default class GameScene extends Phaser.Scene {
+export default class Game extends Phaser.Scene {
 	constructor() {
-		super('Game');
+		super({
+			key: 'Game'
+		});
 		this.map = null;
 		this.treesLayer = null;
 		this.cursors = null;
@@ -62,9 +64,11 @@ export default class GameScene extends Phaser.Scene {
 
 		this.createPlayer(this);
 		this.cursors = this.input.keyboard.createCursorKeys();
-		
+
 		this.playerSocket.on('tanks info', this.updatePlayers.bind(this));
-		this.playerSocket.on('new player', (info) => this.createEnemyPlayer(this, info));
+		this.playerSocket.on('new player', info =>
+			this.createEnemyPlayer(this, info)
+		);
 	}
 
 	update() {
@@ -132,7 +136,7 @@ export default class GameScene extends Phaser.Scene {
 
 	sharePosition() {
 		const { x, y, angle } = this.player;
-		this.playerSocket.emit('tank info', {x, y, angle});
+		this.playerSocket.emit('tank info', { x, y, angle });
 	}
 
 	updatePlayers(info) {
