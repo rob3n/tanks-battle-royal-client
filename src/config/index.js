@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import Menu from '../scenes/Menu';
 import Game from '../scenes/Game';
+import Result from '../scenes/Result';
 
 export default {
 	type: Phaser.AUTO,
@@ -12,5 +13,5 @@ export default {
 			debug: true
 		}
 	},
-	scene: [Menu, Game]
+	scene: [Menu, Game, Result]
 };
