@@ -28,8 +28,6 @@ export default class Tank extends Phaser.Physics.Arcade.Sprite {
 		this.setVelocity(config.velocity, config.velocity);
 		this.setAcceleration(config.acceleration);
 		this.setAngle(0);
-
-		console.log(this);
 	}
 
 	update(keys, bullets) {
@@ -86,7 +84,6 @@ export default class Tank extends Phaser.Physics.Arcade.Sprite {
 
 	fire(bullets) {
 		if (bullets) {
-			console.log(this.scene);
 			const bullet = bullets.create(this.x, this.y);
 			if (bullet) {
 				bullet.setAngle(this.angle);
