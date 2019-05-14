@@ -3,7 +3,9 @@ import constants from '../constants';
 
 export default class Menu extends Phaser.Scene {
 	constructor() {
-		super();
+		super({
+			key: 'Menu'
+		});
 		this.music = null;
 	}
 
@@ -74,6 +76,7 @@ export default class Menu extends Phaser.Scene {
 			playButton.setColor(constants.colors.menuItem);
 		});
 		playButton.on('pointerdown', () => {
+			music.stop();
 			this.scene.start('Game');
 		});
 

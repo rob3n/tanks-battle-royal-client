@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import io from 'socket.io-client';
 import Tank from '../components/tank';
+import constants from '../constants';
 
 export default class Game extends Phaser.Scene {
 	constructor() {
@@ -62,13 +63,30 @@ export default class Game extends Phaser.Scene {
 			delete this.players[playerId];
 		});
 
-		this.createPlayer(this);
+		this.createPlayer();
 		this.cursors = this.input.keyboard.createCursorKeys();
 
 		this.playerSocket.on('tanks info', this.updatePlayers.bind(this));
 		this.playerSocket.on('new player', info =>
 			this.createEnemyPlayer(this, info)
 		);
+
+		const toMenuText = this.add.text(20, 20, `Menu`, {
+			fontSize: '32px',
+			fontWeight: '300'
+		});
+		toMenuText.setInteractive({
+			useHandCursor: true
+		});
+		toMenuText.on('pointerout', () => {
+			toMenuText.setColor(constants.colors.menuItem);
+		});
+		toMenuText.on('pointerover', () => {
+			toMenuText.setColor(constants.colors.hoverMenuItem);
+		});
+		toMenuText.on('pointerdown', () => {
+			this.scene.start('Menu');
+		});
 	}
 
 	update() {
@@ -90,6 +108,30 @@ export default class Game extends Phaser.Scene {
 		this.bullets = this.physics.add.group(this.defaultBulletConfig);
 		this.physics.add.collider(this.player, this.treesLayer);
 		this.physics.add.collider(this.player, this.enemyPlayer);
+		this.physics.add.collider(
+			this.player,
+			this.enemyBullets,
+			(bullet, player) => {
+				bullet.destroy();
+				player.destroy();
+
+				this.playerSocket.on('endgame', playerId => {
+					if (!this.players[playerId]) {
+						return;
+					}
+					this.players[playerId].destroy();
+					delete this.players[playerId];
+				});
+
+				this.scene.start('Result', { result: 'Lose' });
+			}
+		);
+		this.physics.add.collider(this.treesLayer, this.bullets, (bullet, tree) => {
+			bullet.destroy();
+			if (tree.index === this.destroyTreeId) {
+				this.map.removeTileAt(tree.x, tree.y);
+			}
+		});
 	}
 
 	createEnemyPlayer(scene, info) {
@@ -113,9 +155,7 @@ export default class Game extends Phaser.Scene {
 			bullet.destroy();
 			enemyTank.destroy();
 
-			setTimeout(() => {
-				this.createEnemyPlayer(info);
-			}, this.rebornTankTime);
+			this.scene.start('Result', { result: 'Win' });
 		});
 		this.physics.add.collider(
 			scene.treesLayer,
