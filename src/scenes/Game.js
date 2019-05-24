@@ -70,6 +70,11 @@ export default class Game extends Phaser.Scene {
 		this.playerSocket.on('new player', info =>
 			this.createEnemyPlayer(this, info)
 		);
+		this.playerSocket.on('destroyed tree', (tree) => {
+			if (this.map && Object.keys(tree).length) {
+				this.map.removeTileAt(tree.x, tree.y);
+			}
+		});
 
 		const toMenuText = this.add.text(20, 20, `Menu`, {
 			fontSize: '32px',
@@ -163,7 +168,9 @@ export default class Game extends Phaser.Scene {
 			(bullet, tree) => {
 				bullet.destroy();
 				if (tree.index === this.destroyTreeId) {
-					scene.map.removeTileAt(tree.x, tree.y);
+					const { x, y } = tree;
+					scene.map.removeTileAt(x, y);
+					this.playerSocket.emit('destroyed tree', { x, y });
 				}
 			}
 		);
